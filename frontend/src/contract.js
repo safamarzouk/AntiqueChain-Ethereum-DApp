@@ -6,7 +6,8 @@ export const NETWORKS = {
   31337: { chainId: 31337, chainHex: "0x7a69", name: "Hardhat Local", rpcUrl: deployments[31337].rpcUrl, nativeCurrency: { name: "ETH", symbol: "ETH", decimals: 18 } },
   11155111: { chainId: 11155111, chainHex: "0xaa36a7", name: "Sepolia", rpcUrl: import.meta.env.VITE_SEPOLIA_RPC_URL || deployments[11155111].rpcUrl, nativeCurrency: { name: "SepoliaETH", symbol: "ETH", decimals: 18 } }
 };
-let activeChainId = 31337;
+export const IS_GITHUB_PAGES = import.meta.env.BASE_URL === "/AntiqueChain-Ethereum-DApp/";
+let activeChainId = IS_GITHUB_PAGES ? 11155111 : 31337;
 export const short = address => address ? `${address.slice(0, 6)}…${address.slice(-4)}` : "—";
 export const eth = value => Number(ethers.formatEther(value)).toLocaleString("fr-FR", { maximumFractionDigits: 4 });
 export const imageUrl = value => value?.startsWith("ipfs://") ? `https://gateway.pinata.cloud/ipfs/${value.slice(7)}` : value;

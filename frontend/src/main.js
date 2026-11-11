@@ -1,17 +1,18 @@
 import "./style.css";
 import { ethers } from "ethers";
-import { readContract, walletContract, switchNetwork, setActiveChain, activeNetwork, supportedNetwork, short, eth, imageUrl } from "./contract.js";
+import { readContract, walletContract, switchNetwork, setActiveChain, activeNetwork, supportedNetwork, short, eth, imageUrl, IS_GITHUB_PAGES } from "./contract.js";
 
 let registre, account = "", expert = "", selectedImage;
 const $ = selector => document.querySelector(selector);
 const esc = value => String(value).replace(/[&<>\"]/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[char]));
 const toast = message => { const node = $("#toast"); node.textContent = message; node.classList.add("show"); setTimeout(() => node.classList.remove("show"), 4500); };
 const metLocalImages = { 1: 468468, 2: 468469, 3: 468472, 4: 468471, 5: 468470, 6: 468467 };
-const fallbackImage = "/images/placeholder.svg";
+const assetUrl = file => `${import.meta.env.BASE_URL}images/${file}`;
+const fallbackImage = assetUrl("placeholder.svg");
 
 function imageMarkup(obj, className = "") {
   if (!obj.imageUrl && !metLocalImages[Number(obj.id)]) return `<div class="noimage ${className}" role="img" aria-label="Image non fournie">AntiqueChain<br/><small>Image non fournie</small></div>`;
-  const local = metLocalImages[Number(obj.id)] ? `/images/${metLocalImages[Number(obj.id)]}.jpg` : imageUrl(obj.imageUrl);
+  const local = metLocalImages[Number(obj.id)] ? assetUrl(`${metLocalImages[Number(obj.id)]}.jpg`) : imageUrl(obj.imageUrl);
   const remote = imageUrl(obj.imageUrl);
   return `<img class="${className}" src="${esc(local)}" data-fallback="${esc(remote)}" data-placeholder="${fallbackImage}" alt="${esc(obj.nom)}"/>`;
 }
@@ -58,6 +59,7 @@ $("#close").onclick = () => $("#modal").close();
 $("#detail").onclick = event => { const action = event.target.closest("button"); if (!action) return; const id = action.dataset.id; if (action.id === "transfer") tx(c => c.transfererPropriete(id, $("#to").value.trim())); else if (action.id === "sell") { const prix = $("#price").value.trim(); if (!prix) return toast("Indiquez un prix en ETH pour mettre l’objet en vente."); try { tx(c => c.mettreEnVente(id, ethers.parseEther(prix))); } catch { toast("Le prix doit être un nombre ETH valide."); } } else if (action.id === "remove") tx(c => c.retirerDeLaVente(id)); else if (action.classList.contains("buy")) tx(c => c.acheter(id, { value: action.dataset.price })); };
 $("#searchBtn").onclick = () => { const id = Number($("#search").value); if (id) show(id); };
 $("#imageFile").onchange = event => { const file = event.target.files[0]; const preview = $("#imagePreview"); selectedImage = undefined; preview.hidden = true; preview.replaceChildren(); if (!file) return; if (!["image/jpeg", "image/png", "image/webp"].includes(file.type) || file.size > 5 * 1024 * 1024) { event.target.value = ""; return toast("Choisissez une image JPG, PNG ou WebP de 5 Mo maximum."); } selectedImage = file; const img = document.createElement("img"); img.src = URL.createObjectURL(file); img.onload = () => URL.revokeObjectURL(img.src); preview.append(img); preview.hidden = false; };
+if (IS_GITHUB_PAGES) { $(".file-picker").hidden = true; }
 $("#expertForm").onsubmit = async event => { event.preventDefault(); try { const d = Object.fromEntries(new FormData(event.target)); const uri = selectedImage ? await uploadImage(selectedImage) : ""; tx(c => c.enregistrerObjet(d.nom, d.origine, d.epoque, d.description, uri, d.sourceUrl, d.proprietaire)); } catch (error) { toast(error.message); } };
 // Ne force plus Hardhat : le réseau sélectionné dans MetaMask détermine le contrat actif.
 $("#connect").onclick = async () => {
@@ -75,7 +77,11 @@ $("#connect").onclick = async () => {
   } catch (error) { toast(error.message); }
 };
 document.querySelectorAll("[data-switch-network]").forEach(button => button.onclick = async () => {
-  try { await switchNetwork(Number(button.dataset.switchNetwork)); }
+  try {
+    const chainId = Number(button.dataset.switchNetwork);
+    if (account) await switchNetwork(chainId);
+    else { setActiveChain(chainId); await load(); }
+  }
   catch (error) { toast(error.code === 4001 ? "Changement de réseau refusé." : error.message); }
 });
 if (window.ethereum) { window.ethereum.on("accountsChanged", () => location.reload()); window.ethereum.on("chainChanged", () => location.reload()); }

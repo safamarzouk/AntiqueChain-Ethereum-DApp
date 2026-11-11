@@ -7,6 +7,6 @@
   "11155111": {
     "name": "Sepolia",
     "address": "0x3E8A4EBD9a01A1FE948d3ff74e1aD3C0305dD295",
-    "rpcUrl": ""
+    "rpcUrl": "https://ethereum-sepolia-rpc.publicnode.com"
   }
 }

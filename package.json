@@ -2,7 +2,7 @@
   "name": "antiquites-blockchain",
   "version": "1.0.0",
   "private": true,
-  "scripts": { "node": "hardhat node", "compile": "hardhat compile", "deploy": "hardhat run scripts/deploy.js --network localhost", "seed": "hardhat run scripts/seed.js --network localhost", "deploy:sepolia": "hardhat run scripts/deploy.js --network sepolia", "seed:sepolia": "hardhat run scripts/seed-sepolia.js --network sepolia", "verify:sepolia": "hardhat verify --network sepolia", "images": "node scripts/download-images.js", "ipfs-server": "node scripts/ipfs-upload-server.js", "dev": "vite frontend --host 127.0.0.1", "test": "hardhat test" },
+  "scripts": { "node": "hardhat node", "compile": "hardhat compile", "deploy": "hardhat run scripts/deploy.js --network localhost", "seed": "hardhat run scripts/seed.js --network localhost", "deploy:sepolia": "hardhat run scripts/deploy.js --network sepolia", "seed:sepolia": "hardhat run scripts/seed-sepolia.js --network sepolia", "verify:sepolia": "hardhat verify --network sepolia", "images": "node scripts/download-images.js", "ipfs-server": "node scripts/ipfs-upload-server.js", "dev": "vite frontend --host 127.0.0.1", "build:local": "vite build frontend --mode development", "build:pages": "vite build frontend", "test": "hardhat test" },
   "devDependencies": { "@nomicfoundation/hardhat-toolbox": "^5.0.0", "hardhat": "^2.22.16", "vite": "^5.4.10" },
   "dependencies": { "dotenv": "^16.4.5", "ethers": "^6.13.4", "express": "^4.21.2", "multer": "^2.0.2" }
 }

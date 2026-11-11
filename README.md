@@ -214,6 +214,20 @@ Ce dépôt ne contient pas de capture générée ou simulée.
 - Des tests de sécurité et une revue dédiée seraient nécessaires avant tout usage non pédagogique.
 - Le projet prévoit un chargement d’images via un serveur local et IPFS/Pinata ; cette intégration nécessite une configuration locale et ne doit pas être considérée comme démontrée ou disponible par défaut.
 
+## Démonstration GitHub Pages
+
+Après activation de GitHub Pages pour la branche `github-pages`, la démonstration sera disponible à l’adresse suivante :
+
+```text
+https://<votre-utilisateur>.github.io/AntiqueChain-Ethereum-DApp/
+```
+
+La version publiée utilise Sepolia par défaut et lit le registre via un RPC HTTPS public. La consultation des objets et de leur historique ne requiert pas MetaMask. MetaMask reste nécessaire pour toute opération qui modifie le contrat : certification par l’expert, transfert, mise en vente, retrait de vente ou achat.
+
+Le workflow `.github/workflows/deploy-pages.yml` construit le frontend avec `npm run build:pages` et publie `frontend/dist` à chaque push sur `github-pages`. GitHub Pages étant un hébergement statique, l’ajout d’image via IPFS/Pinata est volontairement désactivé dans cette version : il reste disponible en développement local avec le serveur `npm run ipfs-server`.
+
+Le RPC public est visible dans le bundle et ne constitue pas un secret. Ne placez jamais de clé privée, JWT Pinata ou clé API sensible dans une variable `VITE_*` ni dans le dépôt.
+
 ## Auteurs
 
 - Aymen Gharbi

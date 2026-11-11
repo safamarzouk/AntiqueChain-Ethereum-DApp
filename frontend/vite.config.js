@@ -5,7 +5,9 @@ module.exports = defineConfig(({ mode }) => {
   // Vite sert frontend/, tandis que .env demeure à la racine du projet.
   const projectRoot = path.resolve(__dirname, "..");
   const env = loadEnv(mode, projectRoot, "VITE_");
+  const isGitHubPagesBuild = mode === "production";
   return {
+    base: isGitHubPagesBuild ? "/AntiqueChain-Ethereum-DApp/" : "/",
     envDir: projectRoot,
     define: { "import.meta.env.VITE_SEPOLIA_RPC_URL": JSON.stringify(env.VITE_SEPOLIA_RPC_URL || "") },
     server: { proxy: { "/api": "http://127.0.0.1:8787" } }
