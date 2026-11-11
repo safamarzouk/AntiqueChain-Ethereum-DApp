@@ -1,0 +1,12 @@
+{
+  "31337": {
+    "name": "Hardhat Local",
+    "address": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+    "rpcUrl": "http://127.0.0.1:8545"
+  },
+  "11155111": {
+    "name": "Sepolia",
+    "address": "0x3E8A4EBD9a01A1FE948d3ff74e1aD3C0305dD295",
+    "rpcUrl": ""
+  }
+}

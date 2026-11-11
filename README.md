@@ -1,55 +1,220 @@
-# Registre d’antiquités sur blockchain
+# AntiqueChain – Traçabilité des Antiquités sur Blockchain Ethereum
 
-Projet universitaire : un expert certifie une antiquité, puis le contrat Ethereum conserve sa provenance, ses transferts et ses ventes. La blockchain ne prouve pas qu’un objet est authentique : elle rend la certification de l’expert et l’historique des propriétaires infalsifiables.
+AntiqueChain est une application décentralisée (DApp) destinée à enregistrer la certification d’antiquités, leur propriétaire initial, leurs transferts et leurs ventes. Le registre est porté par un smart contract Ethereum et l’interface web permet de le consulter et d’interagir avec lui via MetaMask.
 
-## Lancer la démonstration
+> La blockchain rend traçables les informations enregistrées et les opérations qui suivent. Elle ne prouve pas, à elle seule, l’authenticité physique d’une antiquité : cette appréciation reste du ressort de l’expert qui certifie l’objet.
 
-Prérequis : Node.js 18+ et MetaMask.
+## Problématique
 
-```bash
-npm install
-npm run node
-# dans un second terminal
-npm run deploy
-npm run seed
-npm run dev
-```
+Le parcours de propriété d’une antiquité est souvent difficile à établir : les informations peuvent être incomplètes, dispersées entre plusieurs intervenants ou impossibles à vérifier rapidement. Cette situation accroît le risque de litiges et rend la provenance plus difficile à documenter.
 
-Ouvrir l’URL Vite. Le visiteur voit le registre sans wallet. Pour signer, ajoutez dans MetaMask le réseau `Hardhat Local` : RPC `http://127.0.0.1:8545`, chain ID `31337`, symbole `ETH`. Importez les clés affichées par `npm run node` : elles sont publiques et réservées au test. Compte 0 = expert ; comptes 1 à 3 = propriétaires/acheteurs.
+AntiqueChain propose un registre transparent et vérifiable sur Ethereum. Une fois une certification, un transfert ou une vente enregistrés, l’opération peut être consultée depuis la blockchain associée au réseau utilisé.
 
-`npm run images` télécharge les images Met en local ; la galerie utilise sinon l’URL officielle distante. `npm test` exécute les tests.
+## Solution proposée
 
-## Démonstration
+Le contrat `RegistreAntiquites` désigne le compte qui le déploie comme expert. Seul cet expert peut créer une fiche d’antiquité et en attribuer le premier propriétaire. Le propriétaire courant peut ensuite transférer l’objet, le mettre en vente ou retirer l’annonce. Un acheteur peut acquérir un objet mis en vente en envoyant le montant exact en ETH.
 
-1. Visiteur : ouvrir une fiche et sa frise d’événements.
-2. Expert (compte 0) : connecter MetaMask, enregistrer un objet.
-3. Propriétaire : transférer ou vendre son objet.
-4. Acheteur : acheter au prix exact ; la propriété et l’historique changent.
+Chaque certification, transfert et vente ajoute un événement à l’historique de l’objet. Les lectures du registre sont publiques ; les écritures nécessitent une transaction signée.
+
+## Fonctionnalités principales
+
+- Certification d’une antiquité par le compte expert autorisé.
+- Attribution d’un premier propriétaire lors de la certification.
+- Contrôle d’accès pour l’expert et le propriétaire courant.
+- Transfert de propriété vers une autre adresse.
+- Mise en vente, retrait de vente et achat au prix exact en ETH.
+- Consultation publique de la liste, de la fiche et de l’historique des antiquités.
+- Connexion et signature de transactions via MetaMask.
+- Prise en charge de Hardhat Local (chain ID `31337`) et Ethereum Sepolia (chain ID `11155111`).
 
 ## Architecture
 
-```text
-Utilisateur → Interface Vite (ethers.js) → MetaMask (signature)
-                                      → Smart contract Solidity → Blockchain Hardhat
+```mermaid
+flowchart LR
+    U[Utilisateur] --> F[Frontend Vite<br/>HTML, CSS, JavaScript]
+    F --> E[Ethers.js]
+    E --> M[MetaMask<br/>signature]
+    E --> R[Provider RPC<br/>lectures]
+    M --> R
+    R --> C[Smart contract<br/>RegistreAntiquites]
+    C --> B[(Ethereum<br/>Hardhat Local ou Sepolia)]
+    A[ABI et déploiements] --> E
 ```
 
-Les œuvres et métadonnées proviennent de The Metropolitan Museum of Art, Open Access (domaine public), legs d’Ada Small Moore, 1955. Démonstration pédagogique : propriétaires et expert simulés.
+Le frontend utilise l’ABI de `contract-info.json` pour encoder les appels au contrat. `deployments.json` associe une adresse de contrat et un RPC à chaque réseau. Ethers.js utilise un provider RPC pour les lectures ; MetaMask fournit le signer nécessaire aux transactions qui modifient l’état.
 
-## Limites et évolutions
+## Technologies utilisées
 
-L’expert demeure le garant hors chaîne de l’examen physique. Évolutions : plusieurs experts, certificats hachés, images/IPFS et NFT ERC-721. Aucune clé privée n’est dans ce dépôt.
+| Technologie | Rôle dans le projet |
+| --- | --- |
+| Solidity | Implémentation du smart contract `RegistreAntiquites`. |
+| Ethereum | Réseau de registre distribué qui conserve l’état et les transactions. |
+| Hardhat | Compilation, réseau local, tests et scripts de déploiement. |
+| Sepolia | Réseau public de test Ethereum utilisé pour le déploiement de démonstration. |
+| Ethers.js | Lecture du contrat, préparation et envoi des transactions. |
+| MetaMask | Connexion du portefeuille et signature côté utilisateur. |
+| JavaScript | Logique des scripts Hardhat et de l’interface. |
+| HTML / CSS | Structure et présentation de l’interface web. |
+| Vite | Serveur de développement et construction du frontend. |
+| ABI et RPC | Description de l’interface du contrat et accès aux nœuds Ethereum. |
 
-## Images et IPFS
+## Structure du projet
 
-Les six œuvres initiales sont téléchargées depuis les URLs officielles du Met avec `npm run images` dans `frontend/public/images/`; elles sont ainsi visibles même si une URL distante est indisponible. Les objets déjà inscrits conservent leurs URLs Met immuables : elles ne peuvent pas être remplacées sans falsifier leur enregistrement.
+```text
+.
+├── contracts/
+│   └── RegistreAntiquites.sol
+├── data/
+│   └── objets.json
+├── frontend/
+│   ├── public/images/
+│   ├── src/
+│   │   ├── contract-info.json
+│   │   ├── contract.js
+│   │   ├── deployments.json
+│   │   ├── main.js
+│   │   └── style.css
+│   ├── index.html
+│   └── vite.config.js
+├── scripts/
+│   ├── deploy.js
+│   ├── seed.js
+│   ├── seed-sepolia.js
+│   ├── download-images.js
+│   └── ipfs-upload-server.js
+├── test/
+│   └── RegistreAntiquites.test.js
+├── hardhat.config.js
+├── package.json
+└── .env.example
+```
 
-Pour une nouvelle antiquité, l’expert choisit un JPG, PNG ou WebP (5 Mo max). Le navigateur montre un aperçu, puis envoie le fichier au serveur local IPFS. Ce serveur conserve le secret Pinata côté machine, épingle le fichier, reçoit son CID et renvoie `ipfs://CID`. Cette chaîne est enregistrée dans le champ `imageUrl` du contrat existant ; aucune image volumineuse n’est mise sur Ethereum. Le frontend transforme ensuite `ipfs://CID` en URL de passerelle et l’affiche.
+Les dossiers générés tels que `node_modules`, `artifacts`, `cache` et `frontend/dist` ne font pas partie de l’arborescence à versionner.
 
-Configuration : créez un compte Pinata, générez un JWT avec droit de téléversement, copiez `.env.example` vers `.env`, puis renseignez `PINATA_JWT`. Dans deux terminaux :
+| Fichier | Rôle |
+| --- | --- |
+| `contracts/RegistreAntiquites.sol` | Définit le registre, les droits d’accès, les opérations et l’historique. |
+| `scripts/deploy.js` | Déploie le contrat sur Localhost ou Sepolia et met à jour l’adresse correspondante dans `deployments.json`. |
+| `frontend/src/main.js` | Gère l’interface, la connexion MetaMask et les actions utilisateur. |
+| `frontend/src/contract.js` | Centralise les réseaux, providers, adresses de déploiement et instances Ethers.js. |
+| `frontend/src/deployments.json` | Configure l’adresse et le RPC pour Hardhat Local et Sepolia. |
+| `hardhat.config.js` | Configure Solidity, Hardhat et les réseaux à partir des variables d’environnement. |
+| `frontend/vite.config.js` | Configure Vite, les variables `VITE_*` et le proxy local `/api`. |
+
+## Installation et configuration locale
+
+Prérequis : Node.js 18 ou supérieur et MetaMask.
 
 ```bash
-npm run ipfs-server
+git clone <URL_DE_VOTRE_DEPOT_GITHUB>
+cd blockchain
+npm install
+```
+
+Créez votre fichier local de variables d’environnement à partir du modèle. Ne renseignez que les valeurs utiles à votre environnement ; le réseau local fonctionne sans variables Sepolia.
+
+```powershell
+Copy-Item .env.example .env
+```
+
+Dans un premier terminal, démarrez le nœud Hardhat :
+
+```bash
+npm run node
+```
+
+Dans un deuxième terminal, déployez puis chargez le jeu de démonstration local :
+
+```bash
+npm run deploy
+npm run seed
+```
+
+Enfin, lancez le frontend :
+
+```bash
 npm run dev
 ```
 
-Le CID est une empreinte adressant le contenu : changer un seul octet de l’image produit un CID différent. Sans `PINATA_JWT`, le serveur répond explicitement qu’il manque la configuration et aucune transaction n’est proposée. Les CIDs des six images Met ne sont pas ajoutés automatiquement : cela nécessite votre compte de pinning ; leurs copies locales et URLs officielles restent utilisées pour préserver les données déjà déployées.
+Ouvrez l’URL indiquée par Vite. Dans MetaMask, ajoutez ou sélectionnez **Hardhat Local** :
+
+| Paramètre | Valeur |
+| --- | --- |
+| URL RPC | `http://127.0.0.1:8545` |
+| ID de chaîne | `31337` |
+| Symbole | `ETH` |
+
+Pour signer des opérations locales, importez uniquement les comptes de test affichés par `npm run node`. Ils ne doivent jamais être utilisés hors développement. Le premier compte est l’expert du contrat local nouvellement déployé.
+
+## Déploiement sur Ethereum Sepolia
+
+Le contrat actuellement référencé pour Sepolia est à l’adresse [`0x3E8A4EBD9a01A1FE948d3ff74e1aD3C0305dD295`](https://sepolia.etherscan.io/address/0x3E8A4EBD9a01A1FE948d3ff74e1aD3C0305dD295).
+
+Pour un déploiement Sepolia futur, utilisez un compte de test dédié qui deviendra l’expert, obtenez du SepoliaETH depuis un faucet approprié et configurez dans `.env` :
+
+```dotenv
+SEPOLIA_RPC_URL=<url-rpc-sepolia>
+SEPOLIA_PRIVATE_KEY=<cle-privee-du-compte-de-test>
+VITE_SEPOLIA_RPC_URL=<url-rpc-sepolia-pour-le-frontend>
+```
+
+Le script protège explicitement le déploiement Sepolia. Après autorisation explicite et vérification du compte, ajoutez temporairement `CONFIRM_SEPOLIA_DEPLOY=true` dans `.env`, puis exécutez :
+
+```bash
+npm run deploy:sepolia
+```
+
+Le script met alors à jour l’entrée `11155111` de `frontend/src/deployments.json`. Pour connecter le frontend au contrat déjà déployé, conservez son adresse dans cette entrée, fournissez `VITE_SEPOLIA_RPC_URL`, relancez Vite et sélectionnez Sepolia dans MetaMask. Ne commitez jamais `.env`.
+
+## Sécurité et contrôle d’accès
+
+- `onlyExpert` limite l’enregistrement d’un objet au compte expert défini au déploiement.
+- `onlyProprietaire` limite les transferts, la mise en vente et le retrait de vente au propriétaire courant.
+- Les `require` vérifient notamment l’existence de l’objet, les adresses non nulles, le prix positif et le montant exact d’un achat.
+- Les transactions d’écriture sont signées par le portefeuille MetaMask de l’utilisateur.
+- Les événements de certification, transfert et vente sont conservés dans l’historique consultable de chaque objet.
+- Lors d’un achat, l’état de propriété est mis à jour avant l’envoi du paiement au vendeur.
+
+Ce projet n’a pas été présenté comme ayant fait l’objet d’un audit de sécurité professionnel. Il s’agit d’une démonstration pédagogique : tout déploiement ou usage réel exige une revue de sécurité complémentaire.
+
+## Tests et validation
+
+Les tests automatisés Hardhat se trouvent dans `test/RegistreAntiquites.test.js`. Ils couvrent :
+
+- la désignation de l’expert et le refus d’un enregistrement par un non-expert ;
+- la certification et la création de l’événement `CERTIFICATION` ;
+- le refus des actions de gestion par un non-propriétaire ;
+- la conservation de l’historique après un transfert ;
+- la vente, le paiement au vendeur et les cas de montant ou d’état invalides ;
+- les fonctions de lecture de la fiche et de la liste des objets.
+
+Exécutez les validations avec :
+
+```bash
+npm test
+npx vite build frontend
+```
+
+Le scénario fonctionnel de démonstration est le suivant : **Expert → certification de l’antiquité → Alice propriétaire → mise en vente → achat par Bob → mise à jour du propriétaire**. Les transactions de démonstration annoncées pour ce scénario ont été réalisées sur Ethereum Sepolia ; les données locales et Sepolia restent indépendantes.
+
+## Captures d’écran
+
+Ajoutez uniquement des captures réelles dans `docs/screenshots/`, puis référencez-les ici, par exemple :
+
+```markdown
+![Galerie AntiqueChain](docs/screenshots/galerie.png)
+```
+
+Ce dépôt ne contient pas de capture générée ou simulée.
+
+## Limites et perspectives
+
+- La blockchain ne remplace pas l’expertise et la vérification physique de l’objet.
+- La prévention de doubles certifications dépend notamment des procédures de l’expert et mérite d’être renforcée.
+- Des tests de sécurité et une revue dédiée seraient nécessaires avant tout usage non pédagogique.
+- Le projet prévoit un chargement d’images via un serveur local et IPFS/Pinata ; cette intégration nécessite une configuration locale et ne doit pas être considérée comme démontrée ou disponible par défaut.
+
+## Auteurs
+
+- Aymen Gharbi
+- Safa Marzouk

@@ -1,6 +1,6 @@
 import "./style.css";
 import { ethers } from "ethers";
-import { readContract, walletContract, ensureHardhat, short, eth, imageUrl } from "./contract.js";
+import { readContract, walletContract, switchNetwork, setActiveChain, activeNetwork, supportedNetwork, short, eth, imageUrl } from "./contract.js";
 
 let registre, account = "", expert = "", selectedImage;
 const $ = selector => document.querySelector(selector);
@@ -10,6 +10,7 @@ const metLocalImages = { 1: 468468, 2: 468469, 3: 468472, 4: 468471, 5: 468470, 
 const fallbackImage = "/images/placeholder.svg";
 
 function imageMarkup(obj, className = "") {
+  if (!obj.imageUrl && !metLocalImages[Number(obj.id)]) return `<div class="noimage ${className}" role="img" aria-label="Image non fournie">AntiqueChain<br/><small>Image non fournie</small></div>`;
   const local = metLocalImages[Number(obj.id)] ? `/images/${metLocalImages[Number(obj.id)]}.jpg` : imageUrl(obj.imageUrl);
   const remote = imageUrl(obj.imageUrl);
   return `<img class="${className}" src="${esc(local)}" data-fallback="${esc(remote)}" data-placeholder="${fallbackImage}" alt="${esc(obj.nom)}"/>`;
@@ -25,6 +26,7 @@ document.addEventListener("error", event => {
 async function load() {
   try {
     registre = await readContract(); expert = await registre.expert();
+    $("#network").textContent = activeNetwork().name;
     const objets = await registre.listerObjets();
     $("#gallery").innerHTML = objets.map(card).join("") || "<p>Le registre est vide.</p>";
     if (location.hash.startsWith("#/objet/")) show(Number(location.hash.split("/").pop()));
@@ -56,7 +58,25 @@ $("#close").onclick = () => $("#modal").close();
 $("#detail").onclick = event => { const action = event.target.closest("button"); if (!action) return; const id = action.dataset.id; if (action.id === "transfer") tx(c => c.transfererPropriete(id, $("#to").value.trim())); else if (action.id === "sell") { const prix = $("#price").value.trim(); if (!prix) return toast("Indiquez un prix en ETH pour mettre l’objet en vente."); try { tx(c => c.mettreEnVente(id, ethers.parseEther(prix))); } catch { toast("Le prix doit être un nombre ETH valide."); } } else if (action.id === "remove") tx(c => c.retirerDeLaVente(id)); else if (action.classList.contains("buy")) tx(c => c.acheter(id, { value: action.dataset.price })); };
 $("#searchBtn").onclick = () => { const id = Number($("#search").value); if (id) show(id); };
 $("#imageFile").onchange = event => { const file = event.target.files[0]; const preview = $("#imagePreview"); selectedImage = undefined; preview.hidden = true; preview.replaceChildren(); if (!file) return; if (!["image/jpeg", "image/png", "image/webp"].includes(file.type) || file.size > 5 * 1024 * 1024) { event.target.value = ""; return toast("Choisissez une image JPG, PNG ou WebP de 5 Mo maximum."); } selectedImage = file; const img = document.createElement("img"); img.src = URL.createObjectURL(file); img.onload = () => URL.revokeObjectURL(img.src); preview.append(img); preview.hidden = false; };
-$("#expertForm").onsubmit = async event => { event.preventDefault(); if (!selectedImage) return toast("Choisissez une image avant de certifier l’objet."); try { const d = Object.fromEntries(new FormData(event.target)); const uri = await uploadImage(selectedImage); tx(c => c.enregistrerObjet(d.nom, d.origine, d.epoque, d.description, uri, d.sourceUrl, d.proprietaire)); } catch (error) { toast(error.message); } };
-$("#connect").onclick = async () => { try { if (!window.ethereum) throw Error("Installez MetaMask pour signer."); await ensureHardhat(); await window.ethereum.request({ method: "eth_requestAccounts" }); account = (await window.ethereum.request({ method: "eth_accounts" }))[0]; $("#connect").textContent = short(account); $("#network").textContent = account.toLowerCase() === expert.toLowerCase() ? "Expert" : "Propriétaire / acheteur"; $("#expertPanel").hidden = account.toLowerCase() !== expert.toLowerCase(); await load(); } catch (error) { toast(error.message); } };
+$("#expertForm").onsubmit = async event => { event.preventDefault(); try { const d = Object.fromEntries(new FormData(event.target)); const uri = selectedImage ? await uploadImage(selectedImage) : ""; tx(c => c.enregistrerObjet(d.nom, d.origine, d.epoque, d.description, uri, d.sourceUrl, d.proprietaire)); } catch (error) { toast(error.message); } };
+// Ne force plus Hardhat : le réseau sélectionné dans MetaMask détermine le contrat actif.
+$("#connect").onclick = async () => {
+  try {
+    if (!window.ethereum) throw Error("Installez MetaMask pour signer.");
+    await window.ethereum.request({ method: "eth_requestAccounts" });
+    const { provider, network } = await walletContract();
+    if (!supportedNetwork(network.chainId)) throw Error("Réseau non pris en charge. Sélectionnez Hardhat Local ou Sepolia dans MetaMask.");
+    setActiveChain(network.chainId);
+    account = await (await provider.getSigner()).getAddress();
+    $("#connect").textContent = short(account);
+    await load();
+    $("#network").textContent = `${activeNetwork().name} · ${account.toLowerCase() === expert.toLowerCase() ? "Expert" : "Propriétaire / acheteur"}`;
+    $("#expertPanel").hidden = account.toLowerCase() !== expert.toLowerCase();
+  } catch (error) { toast(error.message); }
+};
+document.querySelectorAll("[data-switch-network]").forEach(button => button.onclick = async () => {
+  try { await switchNetwork(Number(button.dataset.switchNetwork)); }
+  catch (error) { toast(error.code === 4001 ? "Changement de réseau refusé." : error.message); }
+});
 if (window.ethereum) { window.ethereum.on("accountsChanged", () => location.reload()); window.ethereum.on("chainChanged", () => location.reload()); }
 load();
